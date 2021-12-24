@@ -26,7 +26,7 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
         load_instance = True
         include_fk = True  #include ForeignKey is set to False by default
         include_relationships = True
-    finance = Nested('TransactionSchema', many=True, exclude=('user',))
+    transaction = Nested('TransactionSchema', many=True, exclude=('user',))
 
 
 class Transaction(db.Model):
@@ -35,9 +35,11 @@ class Transaction(db.Model):
 
     transaction_id = db.Column(db.Integer, primary_key=True, autoincrement="auto")
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
-
+    user = db.relationship("User", backref=db.backref("transaction", cascade="all, delete-orphan"))
     tr_amount = db.Column(db.Float(150), nullable=False)
     tr_date = db.Column(db.Date, default=date.today())
+
+
 
     def get_id(self):
         return self.transaction_id
@@ -48,7 +50,7 @@ class TransactionSchema(ma.SQLAlchemyAutoSchema):
         model = Transaction
         load_instance = True
         include_fk = True  #include ForeignKey is set to False by default
-    finance = Nested('UserSchema', many=True, exclude=('transaction',))
+    user = Nested('UserSchema', exclude=('transaction',))
 
 db.create_all()
 db.session.commit()

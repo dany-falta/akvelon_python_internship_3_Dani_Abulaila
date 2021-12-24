@@ -15,7 +15,7 @@ api = Api(app,
         description='A REST API for storing user and transactions information')
 ma = Marshmallow(app)
 
-@api.route('/fibonacci<int:n>')
+@api.route('/fibonacci/<int:n>')
 class Fibonacci(Resource):
     def get(self, n):
         return fibonacci(n), 200

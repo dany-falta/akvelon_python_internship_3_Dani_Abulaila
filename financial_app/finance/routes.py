@@ -2,25 +2,15 @@ from flask import Flask
 from flask_restx import Api, Resource, Namespace
 from financial_app import api, db
 from financial_app import models
-from financial_app.user.routes import user_id_parser
+from financial_app import parsers as pr
 from datetime import date
-from flask_restx.fields import date_from_iso8601
 from sqlalchemy import and_, desc
 
 api = Namespace('Finance', description='Financial operations')
 
-transaction_id_parser = api.parser()
-transaction_id_parser.add_argument('transaction_id', type=int, default='1', required=True)
-
-sorting_parser = api.parser()
-sorting_parser.add_argument('sort', type=str, choices=("By date", "By amount"))
-
-filter_parser = api.parser()
-filter_parser.add_argument('filter', type=str, choices=("By income", "By outcome"))
-
 @api.route('/view_transactions')
 class ViewTransactions(Resource):
-    transaction_schema = models.TransactionSchema()
+    transaction_schema = models.TransactionSchema(exclude=["user"])
 
     @api.doc(id= 'get_transaction', description="Query all transactions")
     def get(self):
@@ -34,43 +24,26 @@ class ViewTransactionByID(Resource):
     transaction_schema = models.TransactionSchema()
 
     @api.doc(id= 'get_transaction_by_id',  description="Query transaction by ID")
-    @api.expect(transaction_id_parser, sorting_parser, filter_parser)
-    def get(self, transaction_id_parser=transaction_id_parser, sorting_parser=sorting_parser, filter_parser=filter_parser):
+    @api.expect(pr.transaction_id_parser)
+    def get(self, transaction_id_parser=pr.transaction_id_parser):
         """ Return information on a single transaction """
 
         arg = transaction_id_parser.parse_args()
         transaction_id = arg['transaction_id']
 
-        sort = sorting_parser.parse_args()
-        filter = filter_parser.parse_args()
-
-        if sort['sort'] == "By date":
-            transactions = db.session.query(models.Transaction).filter_by(transaction_id=transaction_id).order_by(desc(models.Transaction.tr_date))
-        elif sort['sort'] == "By amount":
-            transactions = db.session.query(models.Transaction).filter_by(transaction_id=transaction_id).order_by((models.Transaction.tr_amount))
-        else:
-            transactions = db.session.query(models.Transaction).filter_by(transaction_id=transaction_id)
+        transaction = db.session.query(models.Transaction).filter_by(transaction_id=transaction_id).first()
 
         if not transaction:
             return 'Transaction not found.', 404
-        if filter['filter'] == "By income":
-            transactions = transactions.filter(models.Transaction.tr_amount > 0)
-        elif filter['filter'] == "By outcome":
-            transactions = transactions.filter(models.Transaction.tr_amount < 0)
         return self.transaction_schema.dump(transaction), 200
 
 @api.route('/create_transaction')
 class CreateTransaction(Resource):
     transaction_schema = models.TransactionSchema()
 
-    transaction_parser = api.parser()
-    transaction_parser.add_argument('user_id', type=int, required=True)
-    transaction_parser.add_argument('tr_amount', type=float, required=True)
-    transaction_parser.add_argument('tr_date', type=date_from_iso8601)
-
     @api.doc(id= 'create_transaction', description="Create a new transaction")
-    @api.expect(transaction_parser)
-    def post(self, transaction_parser=transaction_parser):
+    @api.expect(pr.transaction_parser)
+    def post(self, transaction_parser=pr.transaction_parser):
        """ Create a new transaction """
 
        data = transaction_parser.parse_args()
@@ -96,14 +69,9 @@ class CreateTransaction(Resource):
 class UpdateTransaction(Resource):
     transaction_schema = models.TransactionSchema()
 
-    transaction_update_parser = api.parser()
-    transaction_update_parser.add_argument('user_id', type=int)
-    transaction_update_parser.add_argument('tr_amount', type=float)
-    transaction_update_parser.add_argument('tr_date', type=date_from_iso8601)
-
     @api.doc(id= 'update_transaction', description="Update information on an existing transaction")
-    @api.expect(transaction_id_parser, transaction_update_parser)
-    def post(self, transaction_id_parser=transaction_id_parser, transaction_update_parser=transaction_update_parser):
+    @api.expect(pr.transaction_id_parser, pr.transaction_update_parser)
+    def put(self, transaction_id_parser=pr.transaction_id_parser, transaction_update_parser=pr.transaction_update_parser):
        """ Update information on an existing transaction """
 
        arg = transaction_id_parser.parse_args()
@@ -138,8 +106,8 @@ class UpdateTransaction(Resource):
 @api.route('/delete_transaction')
 class DeleteTransaction(Resource):
     @api.doc(id= 'delete_transaction', description="Delete an existing transaction")
-    @api.expect(transaction_id_parser)
-    def delete(self,transaction_id_parser=transaction_id_parser):
+    @api.expect(pr.transaction_id_parser)
+    def delete(self, transaction_id_parser=pr.transaction_id_parser):
         """ Delete an existing transaction """
 
         arg = transaction_id_parser.parse_args()
@@ -158,8 +126,8 @@ class ViewTransactionByID(Resource):
     transaction_schema = models.TransactionSchema()
 
     @api.doc(id= 'view_user_transactions', description="Query transactions by a user ID")
-    @api.expect(user_id_parser, sorting_parser, filter_parser)
-    def get(self, user_id_parser=user_id_parser, sorting_parser=sorting_parser, filter_parser=filter_parser):
+    @api.expect(pr.user_id_parser, pr.sorting_parser, pr.filter_parser)
+    def get(self, user_id_parser=pr.user_id_parser, sorting_parser=pr.sorting_parser, filter_parser=pr.filter_parser):
         """ Return all transactions of a single user """
 
         arg = user_id_parser.parse_args()
@@ -187,17 +155,14 @@ class ViewTransactionByID(Resource):
             transactions = transactions.filter(models.Transaction.tr_amount < 0)
         return self.transaction_schema.dump(transactions, many=True), 200
 
-transaction_date_parser = api.parser()
-transaction_date_parser.add_argument('start_date', type=date_from_iso8601, required=True)
-transaction_date_parser.add_argument('end_date', type=date_from_iso8601, required=True)
 
 @api.route('/view_user_transactions_by_date')
 class ViewTransactionByID(Resource):
     transaction_schema = models.TransactionSchema()
 
     @api.doc(id= 'view_user_transactions_by_date', description="Query transactions by a user ID grouped by date")
-    @api.expect(user_id_parser, transaction_date_parser)
-    def get(self, user_id_parser=user_id_parser, transaction_date_parser=transaction_date_parser):
+    @api.expect(pr.user_id_parser, pr.transaction_date_parser)
+    def get(self, user_id_parser=pr.user_id_parser, transaction_date_parser=pr.transaction_date_parser):
         """ Return sum of transactions of a single user by date """
 
         arg = user_id_parser.parse_args()

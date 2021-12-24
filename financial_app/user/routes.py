@@ -1,54 +1,48 @@
 from flask import Flask
 from flask_restx import Api, Resource, Namespace
 from financial_app import api, db
-from financial_app import models
+from financial_app.models import User, UserSchema, Transaction
+from financial_app import parsers as pr
 from werkzeug.security import generate_password_hash
 
 api = Namespace('User', description='User related operations')
 
-user_id_parser = api.parser()
-user_id_parser.add_argument('user_id', type=int, default='1', required=True)
-
 @api.route('/view_users')
 class ViewUsers(Resource):
-    user_schema = models.UserSchema()
+    user_schema = UserSchema(exclude=["transaction"])
 
     @api.doc(id= 'get_users', description="Query all users")
     def get(self):
         """ Return information on all users """
 
-        users = db.session.query(models.User).all()
+        users = db.session.query(User).all()
         return self.user_schema.dump(users, many=True), 200
 
 @api.route('/view_user_by_id')
 class ViewUserByID(Resource):
-    user_schema = models.UserSchema()
+    user_schema = UserSchema()
 
     @api.doc(id= 'get_user_by_id', params={"user_id": "A User ID"} , description="Query user by ID")
-    @api.expect(user_id_parser)
-    def get(self, user_id_parser=user_id_parser):
+    @api.expect(pr.user_id_parser)
+    def get(self, user_id_parser=pr.user_id_parser):
         """ Return information on a single user """
 
         arg = user_id_parser.parse_args()
         user_id = arg['user_id']
-        user = db.session.query(models.User).filter_by(user_id=user_id).first()
+
+        user = db.session.query(User).filter_by(user_id=user_id).first()
         if not user:
             return 'User not found.', 404
+
         return self.user_schema.dump(user), 200
 
 @api.route('/create_user')
 class CreateUser(Resource):
-    user_schema = models.UserSchema()
-
-    user_parser = api.parser()
-    user_parser.add_argument('email', type=str, required=True)
-    user_parser.add_argument('password', type=str, required=True)
-    user_parser.add_argument('first_name', type=str, required=True)
-    user_parser.add_argument('last_name', type=str, required=True)
+    user_schema = UserSchema()
 
     @api.doc(id= 'create_user', description="Create a new user")
-    @api.expect(user_parser)
-    def post(self, user_parser=user_parser):
+    @api.expect(pr.user_parser)
+    def post(self, user_parser=pr.user_parser):
        """ Create a new user """
 
        data = user_parser.parse_args()
@@ -57,7 +51,7 @@ class CreateUser(Resource):
        last_name = data['last_name']
        password = data['password']
 
-       exists = db.session.query(models.User).filter_by(email=email).first()
+       exists = db.session.query(User).filter_by(email=email).first()
 
        if exists:
            return 'User with this email already exists.', 409
@@ -74,22 +68,16 @@ class CreateUser(Resource):
 
 @api.route('/update_user')
 class UpdateUser(Resource):
-    user_schema = models.UserSchema()
-
-    user_update_parser = api.parser()
-    user_update_parser.add_argument('email', type=str)
-    user_update_parser.add_argument('password', type=str)
-    user_update_parser.add_argument('first_name', type=str)
-    user_update_parser.add_argument('last_name', type=str)
+    user_schema = UserSchema()
 
     @api.doc(id= 'update_user', description="Update information on an existing user")
-    @api.expect(user_id_parser, user_update_parser)
-    def post(self, user_id_parser=user_id_parser, user_update_parser=user_update_parser):
+    @api.expect(pr.user_id_parser, pr.user_update_parser)
+    def put(self, user_id_parser=pr.user_id_parser, user_update_parser=pr.user_update_parser):
        """ Update information on an existing user """
 
        arg = user_id_parser.parse_args()
        user_id = arg['user_id']
-       user = db.session.query(models.User).filter_by(user_id=user_id).first()
+       user = db.session.query(User).filter_by(user_id=user_id).first()
        if not user:
            return 'User not found.', 404
 
@@ -99,7 +87,7 @@ class UpdateUser(Resource):
        last_name = data['last_name']
        password = data['password']
 
-       exists = db.session.query(models.User).filter_by(email=email).first()
+       exists = db.session.query(User).filter_by(email=email).first()
 
        if exists:
            return 'User with this email already exists.', 409
@@ -122,13 +110,13 @@ class UpdateUser(Resource):
 @api.route('/delete_user')
 class DeleteUser(Resource):
     @api.doc(id= 'delete_user', description="Delete an existing user")
-    @api.expect(user_id_parser)
-    def delete(self,user_id_parser=user_id_parser):
+    @api.expect(pr.user_id_parser)
+    def delete(self,user_id_parser=pr.user_id_parser):
         """ Delete an existing user """
 
         arg = user_id_parser.parse_args()
         user_id = arg['user_id']
-        user = db.session.query(models.User).filter_by(user_id=user_id).first()
+        user = db.session.query(User).filter_by(user_id=user_id).first()
         if not user:
             return 'User not found.', 404
 

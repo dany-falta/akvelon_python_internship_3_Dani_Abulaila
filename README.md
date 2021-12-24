@@ -1,9 +1,18 @@
 
 # Akvelon REST API
 
-A REST API for storing user and transactions information
+A REST API for storing user and transactions information. It is built using the flask framework, swagger module, sqlalchemy (for database managemnet with sqlite) and flask_restx (previously flask_restful)
 
+## Testing
+The REST API is tested using pytest with a coverage of 94%
+![Pytest coverage](https://i.ibb.co/PF9nRTC/Screenshot-2021-12-24-140525.png)
 
+To run the tests: Open terminal in project root folder and run
+```bash
+  pytest --cov
+```
+## Visit the deployed REST API at Heroku
+https://akvelon-rest-api.herokuapp.com/
 
 ## Deployment with docker
 
@@ -18,6 +27,7 @@ docker-compose up --build
 ```
 
 Visit the server at http://127.0.0.1:5000/ and interact with the swagger UI
+
 ## Run Locally
 
 Clone the project
