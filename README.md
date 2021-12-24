@@ -5,7 +5,7 @@ A REST API for storing user and transactions information. It is built using the 
 
 ## Testing
 The REST API is tested using pytest with a coverage of 94%
-![Pytest coverage](https://i.ibb.co/zQ7Y18f/Screenshot-2021-12-24-140525.png)
+![Pytest coverage](https://ibb.co/PF9nRTC)
 
 To run the tests: Open terminal in project root folder and run
 ```bash
