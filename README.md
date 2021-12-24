@@ -12,7 +12,7 @@ To run the tests: Open terminal in project root folder and run
   pytest --cov
 ```
 ## Visit the deployed REST API at Heroku
-https://akvelon-rest-api.herokuapp.com/
+https://rest-api-flask-akvelon.herokuapp.com/
 
 ## Deployment with docker
 
